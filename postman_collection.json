@@ -1,0 +1,274 @@
+{
+  "info": {
+    "name": "Laboratorio 3 - CRUD Libros (Serverless)",
+    "description": "Coleccion de pruebas para la API serverless de libros (AWS Lambda + API Gateway + DynamoDB). Cambie la variable baseUrl entre la URL local (serverless offline) y la URL de AWS.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000",
+      "description": "Local: http://localhost:3000  |  AWS: https://xxxxx.execute-api.us-east-1.amazonaws.com"
+    },
+    {
+      "key": "libroId",
+      "value": "",
+      "description": "Se llena automaticamente al ejecutar 'Crear libro'"
+    },
+    { "key": "cursor", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "1. Crear libro (201)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 201', () => pm.response.to.have.status(201));",
+              "const b = pm.response.json();",
+              "pm.collectionVariables.set('libroId', b.id);",
+              "pm.test('Devuelve id', () => pm.expect(b.id).to.be.a('string'));",
+              "pm.test('Tiene creadoEn', () => pm.expect(b.creadoEn).to.be.a('string'));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "url": { "raw": "{{baseUrl}}/libros", "host": ["{{baseUrl}}"], "path": ["libros"] },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"titulo\": \"Cien anos de soledad\",\n  \"autor\": \"Gabriel Garcia Marquez\",\n  \"anio\": 1967,\n  \"genero\": \"Realismo magico\",\n  \"disponible\": true\n}"
+        }
+      }
+    },
+    {
+      "name": "2. Crear segundo libro del mismo autor (201)",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "url": { "raw": "{{baseUrl}}/libros", "host": ["{{baseUrl}}"], "path": ["libros"] },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"titulo\": \"El amor en los tiempos del colera\",\n  \"autor\": \"Gabriel Garcia Marquez\",\n  \"anio\": 1985,\n  \"genero\": \"Novela\",\n  \"disponible\": false\n}"
+        }
+      }
+    },
+    {
+      "name": "3. ERROR Crear sin campos obligatorios (400)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": ["pm.test('Status 400', () => pm.response.to.have.status(400));"]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "url": { "raw": "{{baseUrl}}/libros", "host": ["{{baseUrl}}"], "path": ["libros"] },
+        "body": { "mode": "raw", "raw": "{\n  \"titulo\": \"Libro sin autor\"\n}" }
+      }
+    },
+    {
+      "name": "4. ERROR Crear con anio invalido (400)",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "url": { "raw": "{{baseUrl}}/libros", "host": ["{{baseUrl}}"], "path": ["libros"] },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"titulo\": \"Libro raro\",\n  \"autor\": \"Anonimo\",\n  \"anio\": \"1967\",\n  \"genero\": \"Ensayo\"\n}"
+        }
+      }
+    },
+    {
+      "name": "5. Listar libros (200)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 200', () => pm.response.to.have.status(200));",
+              "const b = pm.response.json();",
+              "if (b.cursor) pm.collectionVariables.set('cursor', b.cursor);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "url": { "raw": "{{baseUrl}}/libros", "host": ["{{baseUrl}}"], "path": ["libros"] }
+      }
+    },
+    {
+      "name": "6. Listar con paginacion (limit=1)",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/libros?limit=1",
+          "host": ["{{baseUrl}}"],
+          "path": ["libros"],
+          "query": [{ "key": "limit", "value": "1" }]
+        }
+      }
+    },
+    {
+      "name": "7. Listar pagina siguiente (cursor)",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/libros?limit=1&cursor={{cursor}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["libros"],
+          "query": [
+            { "key": "limit", "value": "1" },
+            { "key": "cursor", "value": "{{cursor}}" }
+          ]
+        }
+      }
+    },
+    {
+      "name": "8. Buscar por autor - GSI + Query (200)",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/libros/autor/Gabriel Garcia Marquez",
+          "host": ["{{baseUrl}}"],
+          "path": ["libros", "autor", "Gabriel Garcia Marquez"]
+        }
+      }
+    },
+    {
+      "name": "9. Obtener libro por id (200)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": ["pm.test('Status 200', () => pm.response.to.have.status(200));"]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/libros/{{libroId}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["libros", "{{libroId}}"]
+        }
+      }
+    },
+    {
+      "name": "10. ERROR Obtener id inexistente (404)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": ["pm.test('Status 404', () => pm.response.to.have.status(404));"]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/libros/00000000-0000-0000-0000-000000000000",
+          "host": ["{{baseUrl}}"],
+          "path": ["libros", "00000000-0000-0000-0000-000000000000"]
+        }
+      }
+    },
+    {
+      "name": "11. Actualizar libro - PUT (200)",
+      "request": {
+        "method": "PUT",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "url": {
+          "raw": "{{baseUrl}}/libros/{{libroId}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["libros", "{{libroId}}"]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"titulo\": \"Cien anos de soledad (edicion conmemorativa)\",\n  \"autor\": \"Gabriel Garcia Marquez\",\n  \"anio\": 1967,\n  \"genero\": \"Realismo magico\",\n  \"disponible\": false\n}"
+        }
+      }
+    },
+    {
+      "name": "12. ERROR Actualizar id inexistente (404)",
+      "request": {
+        "method": "PUT",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "url": {
+          "raw": "{{baseUrl}}/libros/00000000-0000-0000-0000-000000000000",
+          "host": ["{{baseUrl}}"],
+          "path": ["libros", "00000000-0000-0000-0000-000000000000"]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"titulo\": \"Fantasma\",\n  \"autor\": \"Nadie\",\n  \"anio\": 2020,\n  \"genero\": \"Terror\"\n}"
+        }
+      }
+    },
+    {
+      "name": "13. Actualizacion parcial - PATCH (200)",
+      "request": {
+        "method": "PATCH",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "url": {
+          "raw": "{{baseUrl}}/libros/{{libroId}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["libros", "{{libroId}}"]
+        },
+        "body": { "mode": "raw", "raw": "{\n  \"disponible\": true\n}" }
+      }
+    },
+    {
+      "name": "14. Eliminar libro (200)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": ["pm.test('Status 200', () => pm.response.to.have.status(200));"]
+          }
+        }
+      ],
+      "request": {
+        "method": "DELETE",
+        "url": {
+          "raw": "{{baseUrl}}/libros/{{libroId}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["libros", "{{libroId}}"]
+        }
+      }
+    },
+    {
+      "name": "15. ERROR Eliminar id inexistente (404)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": ["pm.test('Status 404', () => pm.response.to.have.status(404));"]
+          }
+        }
+      ],
+      "request": {
+        "method": "DELETE",
+        "url": {
+          "raw": "{{baseUrl}}/libros/00000000-0000-0000-0000-000000000000",
+          "host": ["{{baseUrl}}"],
+          "path": ["libros", "00000000-0000-0000-0000-000000000000"]
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,11 @@
+node_modules/
+.serverless/
+.build/
+.esbuild/
+.env
+.env.*
+*.log
+.DS_Store
+.idea/
+.vscode/
+PENDIENTES.md

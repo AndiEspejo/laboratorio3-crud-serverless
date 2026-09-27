@@ -1,0 +1,107 @@
+org: jeffersonespejo
+app: crud-libros
+service: crud-libros
+
+provider:
+  name: aws
+  runtime: nodejs24.x
+  architecture: arm64
+  region: us-east-1
+  environment:
+    LIBROS_TABLE: ${self:service}-libros-${sls:stage}
+    AUTOR_INDEX: autor-index
+  iam:
+    role:
+      statements:
+        - Effect: Allow
+          Action:
+            - dynamodb:PutItem
+            - dynamodb:GetItem
+            - dynamodb:Scan
+            - dynamodb:UpdateItem
+            - dynamodb:DeleteItem
+          Resource:
+            - Fn::GetAtt: [LibrosTable, Arn]
+        - Effect: Allow
+          Action:
+            - dynamodb:Query
+          Resource:
+            # Fn::Join y no Fn::Sub: ${...} chocaria con las variables de Serverless
+            - Fn::Join:
+                - ""
+                - - Fn::GetAtt: [LibrosTable, Arn]
+                  - "/index/autor-index"
+
+functions:
+  crear:
+    handler: handler.crear
+    events:
+      - httpApi:
+          path: /libros
+          method: post
+  listar:
+    handler: handler.listar
+    events:
+      - httpApi:
+          path: /libros
+          method: get
+  buscarPorAutor:
+    handler: handler.buscarPorAutor
+    events:
+      - httpApi:
+          path: /libros/autor/{autor}
+          method: get
+  obtener:
+    handler: handler.obtener
+    events:
+      - httpApi:
+          path: /libros/{id}
+          method: get
+  actualizar:
+    handler: handler.actualizar
+    events:
+      - httpApi:
+          path: /libros/{id}
+          method: put
+  actualizarParcial:
+    handler: handler.actualizarParcial
+    events:
+      - httpApi:
+          path: /libros/{id}
+          method: patch
+  eliminar:
+    handler: handler.eliminar
+    events:
+      - httpApi:
+          path: /libros/{id}
+          method: delete
+
+resources:
+  Resources:
+    LibrosTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:provider.environment.LIBROS_TABLE}
+        BillingMode: PAY_PER_REQUEST
+        AttributeDefinitions:
+          - AttributeName: id
+            AttributeType: S
+          - AttributeName: autor
+            AttributeType: S
+          - AttributeName: anio
+            AttributeType: N
+        KeySchema:
+          - AttributeName: id
+            KeyType: HASH
+        GlobalSecondaryIndexes:
+          - IndexName: autor-index
+            KeySchema:
+              - AttributeName: autor
+                KeyType: HASH
+              - AttributeName: anio
+                KeyType: RANGE
+            Projection:
+              ProjectionType: ALL
+
+plugins:
+  - serverless-offline
