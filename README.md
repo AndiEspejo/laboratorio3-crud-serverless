@@ -20,6 +20,17 @@ Logs de cada función → Amazon CloudWatch
 Todo se crea con un solo `serverless deploy` (pila de AWS CloudFormation)
 ```
 
+## API desplegada
+
+La API esta desplegada y en funcionamiento en la region `us-east-1`:
+
+```
+https://0xmetp1wl6.execute-api.us-east-1.amazonaws.com
+```
+
+Ejemplo directo desde el navegador (solo GET):
+[https://0xmetp1wl6.execute-api.us-east-1.amazonaws.com/libros](https://0xmetp1wl6.execute-api.us-east-1.amazonaws.com/libros)
+
 ## Entidad
 
 | Atributo     | Tipo    | Obligatorio | Descripción                          |
@@ -98,11 +109,13 @@ Importar `postman_collection.json`. La colección trae 15 requests, incluidos lo
 Cambiar la variable de colección `baseUrl`:
 
 - Local: `http://localhost:3000`
-- AWS: `https://xxxxxxxxxx.execute-api.us-east-1.amazonaws.com`
+- AWS: `https://0xmetp1wl6.execute-api.us-east-1.amazonaws.com`
 
 ### Ejemplos con curl
 
 ```bash
+BASE="https://0xmetp1wl6.execute-api.us-east-1.amazonaws.com"
+
 # Crear (201)
 curl -X POST "$BASE/libros" -H "Content-Type: application/json" -d '{
   "titulo": "Cien años de soledad",
